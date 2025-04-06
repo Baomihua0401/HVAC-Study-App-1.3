@@ -1,11 +1,11 @@
 document.addEventListener("DOMContentLoaded", function () {
-    console.log("Quiz.js loaded!");
-
     const nextButton = document.getElementById("next-btn");
     const backButton = document.getElementById("back-btn");
     const questionText = document.getElementById("question-text");
     const optionsContainer = document.getElementById("options");
     const explanationText = document.getElementById("explanation");
+    const aiExplanationBox = document.getElementById("ai-explanation");
+    const aiButton = document.getElementById("ai-btn");
     const languageSwitch = document.getElementById("language-switch");
     const progressText = document.getElementById("progress");
     const accuracyText = document.getElementById("accuracy");
@@ -53,16 +53,32 @@ document.addEventListener("DOMContentLoaded", function () {
             button.classList.add("option-btn");
             button.textContent = (currentLanguage === "cn") ? option.cn : option.en;
             button.addEventListener("click", function () {
-                checkAnswer(index, question.correct);
+                checkAnswer(index, question.correct, question);
             });
             optionsContainer.appendChild(button);
         });
+
+        aiButton.classList.remove("hidden");
+        aiExplanationBox.classList.add("hidden");
+        aiExplanationBox.textContent = "";
+
+        aiButton.textContent = "AI 智能解析";
+        aiButton.disabled = false;
+
+        aiButton.onclick = async () => {
+            aiButton.disabled = true;
+            aiButton.textContent = "AI 正在分析...";
+            aiExplanationBox.textContent = await fetchAIExplanation(question.question_cn || question.question_en);
+            aiExplanationBox.classList.remove("hidden");
+            aiButton.textContent = "AI 智能解析";
+            aiButton.disabled = false;
+        };
 
         explanationText.classList.add("hidden");
         nextButton.classList.add("hidden");
     }
 
-    function checkAnswer(selectedIndex, correctIndex) {
+    function checkAnswer(selectedIndex, correctIndex, question) {
         const buttons = document.querySelectorAll(".option-btn");
         buttons.forEach((button, index) => {
             button.disabled = true;
@@ -72,26 +88,25 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (selectedIndex === correctIndex) {
             correctAnswers++;
-            mistakes = mistakes.filter(q => q.question_en !== questions[currentQuestionIndex].question_en);
+            mistakes = mistakes.filter(q => q.question_en !== question.question_en);
         } else {
-            if (!mistakes.some(q => q.question_en === questions[currentQuestionIndex].question_en)) {
-                mistakes.push(questions[currentQuestionIndex]);
+            if (!mistakes.some(q => q.question_en === question.question_en)) {
+                mistakes.push(question);
             }
         }
 
         localStorage.setItem("mistakes", JSON.stringify(mistakes));
 
-        explanationText.textContent = (currentLanguage === "cn") ? questions[currentQuestionIndex].explanation_cn : questions[currentQuestionIndex].explanation_en;
+        explanationText.textContent = (currentLanguage === "cn") ? question.explanation_cn : question.explanation_en;
         explanationText.classList.remove("hidden");
-
         nextButton.classList.remove("hidden");
+
         progressText.textContent = `${currentQuestionIndex + 1} / ${questions.length}`;
         accuracyText.textContent = `${Math.round((correctAnswers / (currentQuestionIndex + 1)) * 100)}%`;
     }
 
     nextButton.addEventListener("click", function () {
         currentQuestionIndex++;
-
         if (currentQuestionIndex < questions.length) {
             loadQuestion();
         } else {
@@ -111,4 +126,19 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     loadQuestion();
+
+    async function fetchAIExplanation(questionText) {
+        try {
+            const res = await fetch("https://hvac-worker.d5p9gttfz8.workers.dev", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ question: questionText })
+            });
+            const data = await res.json();
+            return data.answer || "AI 没有返回内容。";
+        } catch (e) {
+            console.error("❌ AI 请求失败:", e);
+            return "⚠️ 无法获取 AI 解析，请稍后重试。";
+        }
+    }
 });
