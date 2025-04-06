@@ -81,17 +81,17 @@ document.addEventListener("DOMContentLoaded", () => {
     aiButton.onclick = async () => {
       aiButton.disabled = true;
       chatHistoryBox.textContent = "AI 正在思考中...";
-      const aiReply = await fetchAIStream(messages);
+      const aiReply = await fetchAIReply(messages.at(-1).content);
       messages.push({ role: "assistant", content: aiReply });
     };
   }
 
-  async function fetchAIStream(messages) {
+  async function fetchAIReply(questionText) {
     try {
-      const res = await fetch("https://hvac-worker.d5p9gftfz8.workers.dev/", {
+      const res = await fetch("https://hvac-worker.d5p9gftz8.workers.dev/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages })
+        body: JSON.stringify({ question: questionText })
       });
 
       if (!res.ok) {
@@ -99,21 +99,10 @@ document.addEventListener("DOMContentLoaded", () => {
         return "";
       }
 
-      if (!res.body) throw new Error("响应失败");
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder("utf-8");
-      let content = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        content += chunk;
-        chatHistoryBox.textContent = content;
-      }
-
-      return content;
+      const data = await res.json();
+      const reply = data.answer || "AI 没有返回内容。";
+      chatHistoryBox.textContent = reply;
+      return reply;
     } catch (e) {
       chatHistoryBox.textContent = "❌ AI 解析失败，请稍后重试...";
       return "";
@@ -127,7 +116,7 @@ document.addEventListener("DOMContentLoaded", () => {
     messages.push({ role: "user", content: userText });
     followupInput.disabled = true;
     followupInput.value = "AI 正在思考...";
-    const reply = await fetchAIStream(messages);
+    const reply = await fetchAIReply(userText);
     messages.push({ role: "assistant", content: reply });
     followupInput.value = "";
     followupInput.disabled = false;
