@@ -47,7 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
     progressText.textContent = `${currentQuestionIndex + 1} / ${questions.length}`;
     accuracyText.textContent = `${Math.round((correctAnswers / (currentQuestionIndex + 1)) * 100)}%`;
 
-    // 初始化 AI 消息上下文
+    // AI 初始化上下文
     messages = [
       { role: "system", content: "你是一个 HVAC 错题讲解 AI 助手。" },
       {
@@ -91,26 +91,32 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function fetchAIStream(messages) {
-    const res = await fetch("https://hvac-worker.d5p9gttfz8.workers.dev", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages })
-    });
+    try {
+      const res = await fetch("https://hvac-worker.d5p9gttfz8.workers.dev", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages })
+      });
 
-    if (!res.body) throw new Error("响应失败");
+      if (!res.body) throw new Error("响应失败");
 
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder("utf-8");
-    let content = "";
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let content = "";
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      content += decoder.decode(value, { stream: true });
-      chatHistoryBox.textContent = content;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        content += chunk;
+        chatHistoryBox.textContent = content;
+      }
+
+      return content;
+    } catch (e) {
+      chatHistoryBox.textContent = "❌ AI 解析失败，请稍后重试...";
+      return "";
     }
-
-    return content;
   }
 
   followupBtn.onclick = async () => {
