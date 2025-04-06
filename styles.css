@@ -1,73 +1,21 @@
-/* styles.css */
-body {
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  background-color: #fff;
-  color: #000;
-  text-align: center;
-  padding: 20px;
-  margin: 0;
-}
-
-h1, h2 {
-  font-weight: bold;
-  margin-bottom: 20px;
-}
-
-select, button {
-  padding: 10px 20px;
-  font-size: 16px;
-  margin: 10px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  background-color: #f9f9f9;
+#ai-btn {
+  background-color: #0088cc;
+  color: white;
+  font-size: 15px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 5px;
+  margin-top: 10px;
   cursor: pointer;
 }
-
-button:hover {
-  background-color: #e0e0e0;
+#ai-btn:hover {
+  background-color: #0070a0;
 }
 
-.option-btn {
-  background-color: white;
-  color: black;
-  border: 2px solid #007bff;
-  border-radius: 10px;
-  padding: 12px;
-  margin: 10px auto;
-  font-size: 18px;
-  width: 90%;
-  max-width: 800px;
-  display: block;
-  transition: background-color 0.2s;
-}
-
-.option-btn:hover {
-  background-color: #f0f8ff;
-  color: #000;
-}
-
-.option-btn.correct {
-  background-color: #007bff;
-  color: #fff;
-}
-
-.option-btn.wrong {
-  background-color: #ff4d4f;
-  color: #fff;
-}
-
-.hidden {
-  display: none;
-}
-
-#explanation {
-  margin-top: 20px;
-  font-style: italic;
-  color: #333;
+#ai-explanation {
+  background: #f4f4f4;
+  border-left: 4px solid #00aaff;
   padding: 10px;
-}
-
-#progress, #accuracy {
-  font-weight: bold;
-  margin: 5px 0;
+  margin-top: 12px;
+  border-radius: 4px;
 }
