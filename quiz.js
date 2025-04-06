@@ -47,13 +47,9 @@ document.addEventListener("DOMContentLoaded", () => {
     progressText.textContent = `${currentQuestionIndex + 1} / ${questions.length}`;
     accuracyText.textContent = `${Math.round((correctAnswers / (currentQuestionIndex + 1)) * 100)}%`;
 
-    // AI 初始化上下文
     messages = [
       { role: "system", content: "你是一个 HVAC 错题讲解 AI 助手。" },
-      {
-        role: "user",
-        content: currentLanguage === "cn" ? q.question_cn : q.question_en
-      }
+      { role: "user", content: currentLanguage === "cn" ? q.question_cn : q.question_en }
     ];
   }
 
@@ -92,11 +88,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function fetchAIStream(messages) {
     try {
-      const res = await fetch("https://hvac-worker.d5p9gttfz8.workers.dev", {
+      const res = await fetch("https://hvac-worker.d5p9gftfz8.workers.dev/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages })
       });
+
+      if (!res.ok) {
+        chatHistoryBox.textContent = "❌ AI请求失败：" + res.status;
+        return "";
+      }
 
       if (!res.body) throw new Error("响应失败");
 
