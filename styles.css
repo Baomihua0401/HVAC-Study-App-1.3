@@ -1,21 +1,47 @@
-#ai-btn {
-  background-color: #0088cc;
-  color: white;
-  font-size: 15px;
-  padding: 10px 14px;
-  border: none;
-  border-radius: 5px;
-  margin-top: 10px;
-  cursor: pointer;
-}
-#ai-btn:hover {
-  background-color: #0070a0;
+/* 选项按钮样式 */
+.option-btn {
+  display: inline-block;
+  margin: 0.25em;
+  padding: 0.6em 1em;
+  font-size: 1em;
+  max-width: 90%;
+  word-break: break-word;
+  border-radius: 6px;
+  border: 1px solid #999;
+  background-color: #f9f9f9;
 }
 
-#ai-explanation {
-  background: #f4f4f4;
-  border-left: 4px solid #00aaff;
-  padding: 10px;
-  margin-top: 12px;
-  border-radius: 4px;
+.option-btn.correct {
+  background-color: #c6f6d5; /* 绿色 */
+  border-color: #38a169;
+}
+
+.option-btn.wrong {
+  background-color: #fed7d7; /* 红色 */
+  border-color: #e53e3e;
+}
+
+/* AI模块响应式布局 */
+#ai-explanation-box {
+  margin-top: 1em;
+  padding: 1em;
+  border: 1px solid #ccc;
+  max-width: 100%;
+  overflow-wrap: break-word;
+}
+
+@media screen and (max-width: 768px) {
+  .option-btn {
+    font-size: 0.9em;
+    padding: 0.5em;
+  }
+
+  #followup-input {
+    width: 100%;
+    margin-bottom: 0.5em;
+  }
+
+  #followup-btn {
+    width: 100%;
+  }
 }
