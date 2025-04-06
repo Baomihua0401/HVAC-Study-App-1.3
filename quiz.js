@@ -1,41 +1,151 @@
-// 🔁 替换原 fetchAIExplanation → 支持流式响应
-async function fetchAIStream(messages) {
-  const response = await fetch("https://hvac-worker.d5p9gttfz8.workers.dev", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ messages })
-  });
+document.addEventListener("DOMContentLoaded", () => {
+  const questionText = document.getElementById("question-text");
+  const optionsContainer = document.getElementById("options");
+  const explanationText = document.getElementById("explanation");
+  const aiExplanationBox = document.getElementById("ai-explanation-box");
+  const aiButton = document.getElementById("ai-btn");
+  const followupInput = document.getElementById("followup-input");
+  const followupBtn = document.getElementById("followup-btn");
+  const chatHistoryBox = document.getElementById("chat-history");
+  const nextButton = document.getElementById("next-btn");
+  const backButton = document.getElementById("back-btn");
+  const progressText = document.getElementById("progress");
+  const accuracyText = document.getElementById("accuracy");
+  const languageSwitch = document.getElementById("language-switch");
 
-  if (!response.body) throw new Error("响应失败");
+  let currentLanguage = localStorage.getItem("language") || "cn";
+  let currentQuestionIndex = parseInt(localStorage.getItem("currentQuestionIndex")) || 0;
+  let questions = JSON.parse(localStorage.getItem("currentQuestions")) || [];
+  let mistakes = JSON.parse(localStorage.getItem("mistakes")) || [];
+  let correctAnswers = 0;
+  let messages = [];
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder("utf-8");
-  let content = "";
-  chatHistoryBox.textContent = "";
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    const chunk = decoder.decode(value, { stream: true });
-    content += chunk;
-    chatHistoryBox.textContent = content;
+  if (questions.length === 0) {
+    alert("⚠️ 没有加载到题库，请返回首页重新选择章节！");
+    window.location.href = "index.html";
   }
 
-  return content;
-}
+  function loadQuestion() {
+    const q = questions[currentQuestionIndex];
+    if (!q) return;
 
-// ✅ 更新按钮事件绑定
-followupBtn.onclick = async () => {
-  const userInput = followupInput.value.trim();
-  if (!userInput) return;
+    questionText.textContent = currentLanguage === "cn" ? q.question_cn : q.question_en;
+    optionsContainer.innerHTML = "";
+    chatHistoryBox.textContent = "";
+    explanationText.textContent = "";
+    followupInput.value = "";
+    aiExplanationBox.classList.add("hidden");
 
-  messages.push({ role: "user", content: userInput });
-  followupInput.value = "AI 正在思考中...";
-  followupInput.disabled = true;
+    q.options.forEach((opt, index) => {
+      const btn = document.createElement("button");
+      btn.textContent = currentLanguage === "cn" ? opt.cn : opt.en;
+      btn.classList.add("option-btn");
+      btn.addEventListener("click", () => handleAnswer(index));
+      optionsContainer.appendChild(btn);
+    });
 
-  const aiReply = await fetchAIStream(messages);
-  messages.push({ role: "assistant", content: aiReply });
+    progressText.textContent = `${currentQuestionIndex + 1} / ${questions.length}`;
+    accuracyText.textContent = `${Math.round((correctAnswers / (currentQuestionIndex + 1)) * 100)}%`;
 
-  followupInput.value = "";
-  followupInput.disabled = false;
-};
+    // 初始化 AI 消息上下文
+    messages = [
+      { role: "system", content: "你是一个 HVAC 错题讲解 AI 助手。" },
+      {
+        role: "user",
+        content: currentLanguage === "cn" ? q.question_cn : q.question_en
+      }
+    ];
+  }
+
+  function handleAnswer(index) {
+    const q = questions[currentQuestionIndex];
+    const correct = index === q.correct;
+
+    const optionButtons = document.querySelectorAll(".option-btn");
+    optionButtons.forEach((btn, i) => {
+      btn.disabled = true;
+      if (i === q.correct) btn.classList.add("correct");
+      if (i === index && !correct) btn.classList.add("wrong");
+    });
+
+    if (correct) {
+      correctAnswers++;
+      mistakes = mistakes.filter(m => m.question_en !== q.question_en);
+    } else {
+      if (!mistakes.some(m => m.question_en === q.question_en)) {
+        mistakes.push(q);
+      }
+    }
+
+    localStorage.setItem("mistakes", JSON.stringify(mistakes));
+
+    explanationText.textContent = currentLanguage === "cn" ? q.explanation_cn : q.explanation_en;
+    aiExplanationBox.classList.remove("hidden");
+
+    aiButton.onclick = async () => {
+      aiButton.disabled = true;
+      chatHistoryBox.textContent = "AI 正在思考中...";
+      const aiReply = await fetchAIStream(messages);
+      messages.push({ role: "assistant", content: aiReply });
+    };
+  }
+
+  async function fetchAIStream(messages) {
+    const res = await fetch("https://hvac-worker.d5p9gttfz8.workers.dev", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages })
+    });
+
+    if (!res.body) throw new Error("响应失败");
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let content = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      content += decoder.decode(value, { stream: true });
+      chatHistoryBox.textContent = content;
+    }
+
+    return content;
+  }
+
+  followupBtn.onclick = async () => {
+    const userText = followupInput.value.trim();
+    if (!userText) return;
+
+    messages.push({ role: "user", content: userText });
+    followupInput.disabled = true;
+    followupInput.value = "AI 正在思考...";
+    const reply = await fetchAIStream(messages);
+    messages.push({ role: "assistant", content: reply });
+    followupInput.value = "";
+    followupInput.disabled = false;
+  };
+
+  nextButton.onclick = () => {
+    currentQuestionIndex++;
+    if (currentQuestionIndex < questions.length) {
+      localStorage.setItem("currentQuestionIndex", currentQuestionIndex);
+      loadQuestion();
+    } else {
+      alert("✅ 全部题目完成！");
+      window.location.href = "index.html";
+    }
+  };
+
+  backButton.onclick = () => {
+    window.location.href = "index.html";
+  };
+
+  languageSwitch.onclick = () => {
+    currentLanguage = currentLanguage === "cn" ? "en" : "cn";
+    localStorage.setItem("language", currentLanguage);
+    loadQuestion();
+  };
+
+  loadQuestion();
+});
